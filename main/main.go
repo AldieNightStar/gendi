@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	guessNumber := 32.00
+	guessNumber := 12.0
 
 	plus := gendi.RunnerFunc(func(r *gendi.Runner) error {
 		r.Data[0] += 1
@@ -22,15 +22,25 @@ func main() {
 
 	multiply := gendi.RunnerFunc(func(r *gendi.Runner) error {
 		r.Data[0] *= 2
+		if math.IsInf(r.Data[0], 1) || math.IsInf(r.Data[0], -1) {
+			r.Data[0] = 0
+		}
 		return nil
 	})
 
 	judge := gendi.JudgeFunc(func(r *gendi.Runner) float64 {
-		// Difference between guessed number and data
-		diff := math.Abs(guessNumber - r.Data[0])
+		g := r.Data[0]
 
-		// The less difference the more score it takes
-		return 100.00 - diff
+		diff := math.Abs(guessNumber - g)
+		if diff > 1000 {
+			diff = 1000
+		} else if diff < 0 {
+			diff = 0
+		}
+
+		result := 1000 - diff
+
+		return result
 	})
 
 	r := gendi.NewRunner([]rune("++++++++++++"), 1, judge)
@@ -41,8 +51,8 @@ func main() {
 
 	r.Done()
 
-	trained := r.Train(10, 5, 1)
-	trained.StepAll()
+	trained := r.Train(250, 1, 996)
 
-	fmt.Println(string(trained.Code), trained.Data[0], trained.Score)
+	fmt.Println("CODE:", string(trained.Code), "NUMBER:", trained.Data[0], "SCORE:", trained.Score)
+
 }

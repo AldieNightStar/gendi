@@ -76,12 +76,6 @@ func (r *Runner) Clone() *Runner {
 	// It will reuse the commands
 	r2.Commands = r.Commands
 
-	// Clone the data
-	r2.Data = make([]float64, datalen)
-	for id, d := range r.Data {
-		r2.Data[id] = d
-	}
-
 	// Clone the score
 	r2.Score = r.Score
 
@@ -179,17 +173,14 @@ func (r *Runner) Step() error {
 	return nil
 }
 
-func (r *Runner) Train(countPerGen, generations, mutationLevel int) *Runner {
+func (r *Runner) Train(countPerGen, mutationLevel int, minimumScore float64) *Runner {
 	runners := r.CloneMutatedMany(mutationLevel, countPerGen)
 
 	// Work with generations
-	for gid := 0; gid < generations; gid++ {
+	for {
 
 		// Eval each runner and judge the score for it
 		for _, runner := range runners {
-
-			// DEBUG
-			fmt.Println("GEN: ", gid, "Score: ", runner.Score, string(runner.Code))
 
 			// Eval all the steps
 			runner.StepAll()
@@ -201,12 +192,17 @@ func (r *Runner) Train(countPerGen, generations, mutationLevel int) *Runner {
 		// Then take the best one by score
 		best := TakeBestRunner(runners)
 
+		// If we found the best Runner
+		if best.Score >= minimumScore {
+			return best
+		}
+
 		// Now create new generation from best one
 		runners = best.CloneMutatedMany(mutationLevel, countPerGen)
 	}
 
 	// When generations is done then take best one again and return
-	return TakeBestRunner(runners)
+	// return TakeBestRunner(runners)
 }
 
 func TakeBestRunner(runners []*Runner) *Runner {
