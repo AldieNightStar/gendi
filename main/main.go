@@ -24,12 +24,13 @@ func main() {
 		return nil
 	})
 
-	r := gendi.NewRunner("+++++++++++++", "+-* ", 1)
+	r := gendi.NewRunner([]rune("+++++++++++++"), 1)
 	r.SetCommand('+', plus)
 	r.SetCommand('-', minus)
 	r.SetCommand('*', multiply)
 	r.SetCommand(' ', gendi.DO_NOTHING)
 
+	r.Done()
 	r.StepAll()
 
 	fmt.Println(r.Data[0])

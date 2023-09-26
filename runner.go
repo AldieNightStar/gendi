@@ -13,24 +13,32 @@ type RunnerFunc func(*Runner) error
 
 type Runner struct {
 	Ptr      int
-	Code     string
+	Code     []rune
 	Commands map[rune]RunnerFunc
 	Data     []int
 	Random   *rand.Rand
 	Score    int
-	Charset  string
+	Charset  []rune
 }
 
-func NewRunner(code string, charset string, datalen int) *Runner {
+func NewRunner(code []rune, datalen int) *Runner {
 	return &Runner{
 		Ptr:      0,
-		Code:     code,
+		Code:     []rune(code),
 		Commands: make(map[rune]RunnerFunc),
 		Data:     make([]int, datalen),
 		Random:   random(),
-		Charset:  charset,
 		Score:    0,
 	}
+}
+
+func (r *Runner) Done() {
+	// Generate a charset for the future run
+	var runes []rune
+	for k, _ := range r.Commands {
+		runes = append(runes, k)
+	}
+	r.Charset = runes
 }
 
 func (r *Runner) SetCommand(chr rune, c RunnerFunc) {
@@ -52,7 +60,7 @@ func (r *Runner) Clone() *Runner {
 	datalen := len(r.Data)
 
 	// Create new Runner
-	r2 := NewRunner(r.Code, r.Charset, datalen)
+	r2 := NewRunner(r.Code, datalen)
 
 	// It will reuse the commands
 	r2.Commands = r.Commands
@@ -88,25 +96,18 @@ func (r *Runner) CloneMutatedMany(times int, count int) []*Runner {
 }
 
 func (r *Runner) Mutate(times int) {
-	// Create runes from string to be changed
-	newchars := []rune(r.Code)
-
 	// Get len's predefined
-	charsetrunes := []rune(r.Charset)
 	charsetlen := len(r.Charset)
-	codelen := len(newchars)
+	codelen := len(r.Code)
 
 	// Operation itself
 	for i := 0; i < times; i++ {
 		id := r.Random.Int() % codelen
-		chr := charsetrunes[r.Random.Int()%charsetlen]
+		chr := r.Charset[r.Random.Int()%charsetlen]
 
 		// Mutate single character according to random choose
-		newchars[id] = chr
+		r.Code[id] = chr
 	}
-
-	// Then update the code into new chars
-	r.Code = string(newchars)
 }
 
 func (r *Runner) StepAll() error {
