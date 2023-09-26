@@ -16,6 +16,7 @@ type Runner struct {
 	Data     []byte
 	Random   *rand.Rand
 	Score    int
+	Charset  string
 }
 
 func NewRunner(code string, datalen int) *Runner {
@@ -27,6 +28,18 @@ func NewRunner(code string, datalen int) *Runner {
 		Random:   random(),
 		Score:    0,
 	}
+}
+
+func SpawnNewRunners(count int, datalen int, codelen int, charset string) []*Runner {
+	var arr []*Runner
+	r := random()
+	for i := 0; i < count; i++ {
+		arr = append(
+			arr,
+			NewRunner(randomchars(r, codelen, charset), datalen),
+		)
+	}
+	return arr
 }
 
 func (r *Runner) IsBetterThan(r2 *Runner) bool {
@@ -65,31 +78,36 @@ func (r *Runner) Clone() *Runner {
 	return r2
 }
 
-func (r *Runner) CloneMutated(times int, charset string) *Runner {
+func (r *Runner) CloneMutated(times int) *Runner {
 	r2 := r.Clone()
-	r2.Mutate(times, charset)
+	r2.Mutate(times)
 	return r2
 }
 
 func (r *Runner) CloneMutatedArray(times int, charset string, count int) []*Runner {
 	var runners []*Runner
 	for i := 0; i < count; i++ {
-		runners = append(runners, r.CloneMutated(times, charset))
+		runners = append(runners, r.CloneMutated(times))
 	}
 	return runners
 }
 
-func (r *Runner) Mutate(times int, charset string) {
+func (r *Runner) Mutate(times int) {
 	// Create runes from string to be changed
 	newchars := []rune(r.Code)
 
+	// Get len's predefined
+	charsetrunes := []rune(r.Charset)
+	charsetlen := len(r.Charset)
+	codelen := len(newchars)
+
 	// Operation itself
 	for i := 0; i < times; i++ {
-		id := r.Random.Int() % len(r.Code)
-		chr := charset[r.Random.Int()%len(charset)]
+		id := r.Random.Int() % codelen
+		chr := charsetrunes[r.Random.Int()%charsetlen]
 
 		// Mutate single character according to random choose
-		newchars[id] = rune(chr)
+		newchars[id] = chr
 	}
 
 	// Then update the code into new chars
@@ -150,6 +168,11 @@ func (r *Runner) Step() error {
 	return nil
 }
 
+func (r *Runner) Train(countPerGen, generations, mutationLevel int) *Runner {
+	// randomchars()
+	return nil // TODO
+}
+
 // Get randomizer from UnixNano
 func random() *rand.Rand {
 	return rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -174,4 +197,18 @@ func TakeBestRunner(runners []*Runner) *Runner {
 	// Return best runner
 	// If no best found it will be first one (bestId is 0 initialy)
 	return runners[bestId]
+}
+
+func randomchars(r *rand.Rand, count int, charset string) string {
+	// Prepare
+	runes := make([]rune, count)
+	charsetlen := len(charset)
+
+	// Populate string with random chars
+	for i := 0; i < count; i++ {
+		runes[i] = rune(charset[r.Int()%charsetlen])
+	}
+
+	// Return new string
+	return string(runes)
 }
