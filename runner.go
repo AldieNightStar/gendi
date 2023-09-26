@@ -30,18 +30,6 @@ func NewRunner(code string, datalen int) *Runner {
 	}
 }
 
-func SpawnNewRunners(count int, datalen int, codelen int, charset string) []*Runner {
-	var arr []*Runner
-	r := random()
-	for i := 0; i < count; i++ {
-		arr = append(
-			arr,
-			NewRunner(randomchars(r, codelen, charset), datalen),
-		)
-	}
-	return arr
-}
-
 func (r *Runner) IsBetterThan(r2 *Runner) bool {
 	// Always better than nil :)
 	if r2 == nil {
@@ -84,7 +72,7 @@ func (r *Runner) CloneMutated(times int) *Runner {
 	return r2
 }
 
-func (r *Runner) CloneMutatedArray(times int, charset string, count int) []*Runner {
+func (r *Runner) CloneMutatedMany(times int, count int) []*Runner {
 	var runners []*Runner
 	for i := 0; i < count; i++ {
 		runners = append(runners, r.CloneMutated(times))
@@ -169,8 +157,25 @@ func (r *Runner) Step() error {
 }
 
 func (r *Runner) Train(countPerGen, generations, mutationLevel int) *Runner {
-	// randomchars()
-	return nil // TODO
+	runners := r.CloneMutatedMany(mutationLevel, countPerGen)
+
+	// Work with generations
+	for gid := 0; gid < generations; gid++ {
+
+		// Eval each runner
+		for _, r := range runners {
+			r.StepAll()
+		}
+
+		// Then take the best one
+		best := TakeBestRunner(runners)
+
+		// Now create new generation from best one
+		runners = best.CloneMutatedMany(mutationLevel, countPerGen)
+	}
+
+	// When generations is done then take best one again and return
+	return TakeBestRunner(runners)
 }
 
 // Get randomizer from UnixNano
