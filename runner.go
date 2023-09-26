@@ -11,24 +11,29 @@ var DO_NOTHING = RunnerFunc(func(r *Runner) error { return nil })
 
 type RunnerFunc func(*Runner) error
 
+type JudgeFunc func(*Runner) float64
+
+var _random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 type Runner struct {
 	Ptr      int
 	Code     []rune
 	Commands map[rune]RunnerFunc
-	Data     []int
-	Random   *rand.Rand
-	Score    int
+	Data     []float64
+	Score    float64
 	Charset  []rune
+	Judge    JudgeFunc
 }
 
-func NewRunner(code []rune, datalen int) *Runner {
+func NewRunner(code []rune, datalen int, judger JudgeFunc) *Runner {
 	return &Runner{
 		Ptr:      0,
 		Code:     []rune(code),
 		Commands: make(map[rune]RunnerFunc),
-		Data:     make([]int, datalen),
-		Random:   random(),
+		Data:     make([]float64, datalen),
 		Score:    0,
+		Charset:  []rune{},
+		Judge:    judger,
 	}
 }
 
@@ -59,26 +64,32 @@ func (r *Runner) Clone() *Runner {
 	// Get len of data
 	datalen := len(r.Data)
 
+	// Clone the code
+	newCode := make([]rune, len(r.Code))
+	for id, chr := range r.Code {
+		newCode[id] = chr
+	}
+
 	// Create new Runner
-	r2 := NewRunner(r.Code, datalen)
+	r2 := NewRunner(newCode, datalen, r.Judge)
 
 	// It will reuse the commands
 	r2.Commands = r.Commands
 
 	// Clone the data
-	r2.Data = make([]int, datalen)
+	r2.Data = make([]float64, datalen)
 	for id, d := range r.Data {
 		r2.Data[id] = d
 	}
 
-	// Random cannot be cloned
-	// Rather it could be recreated new one
-
 	// Clone the score
 	r2.Score = r.Score
 
-	// As charset is not touched then it's just given by ref
-	r2.Charset = r.Charset
+	// Clone charset into second code
+	r2.Charset = make([]rune, len(r.Charset))
+	for id, chr := range r.Charset {
+		r2.Charset[id] = chr
+	}
 
 	// Return the clone
 	return r2
@@ -93,7 +104,8 @@ func (r *Runner) CloneMutated(times int) *Runner {
 func (r *Runner) CloneMutatedMany(times int, count int) []*Runner {
 	var runners []*Runner
 	for i := 0; i < count; i++ {
-		runners = append(runners, r.CloneMutated(times))
+		clone := r.CloneMutated(times)
+		runners = append(runners, clone)
 	}
 	return runners
 }
@@ -105,8 +117,8 @@ func (r *Runner) Mutate(times int) {
 
 	// Operation itself
 	for i := 0; i < times; i++ {
-		id := r.Random.Int() % codelen
-		chr := r.Charset[r.Random.Int()%charsetlen]
+		id := _random.Int() % codelen
+		chr := r.Charset[_random.Int()%charsetlen]
 
 		// Mutate single character according to random choose
 		r.Code[id] = chr
@@ -173,12 +185,20 @@ func (r *Runner) Train(countPerGen, generations, mutationLevel int) *Runner {
 	// Work with generations
 	for gid := 0; gid < generations; gid++ {
 
-		// Eval each runner
-		for _, r := range runners {
-			r.StepAll()
+		// Eval each runner and judge the score for it
+		for _, runner := range runners {
+
+			// DEBUG
+			fmt.Println("GEN: ", gid, "Score: ", runner.Score, string(runner.Code))
+
+			// Eval all the steps
+			runner.StepAll()
+
+			// Judge how many it scored
+			runner.Score = runner.Judge(runner)
 		}
 
-		// Then take the best one
+		// Then take the best one by score
 		best := TakeBestRunner(runners)
 
 		// Now create new generation from best one
@@ -189,11 +209,6 @@ func (r *Runner) Train(countPerGen, generations, mutationLevel int) *Runner {
 	return TakeBestRunner(runners)
 }
 
-// Get randomizer from UnixNano
-func random() *rand.Rand {
-	return rand.New(rand.NewSource(time.Now().UnixNano()))
-}
-
 func TakeBestRunner(runners []*Runner) *Runner {
 	// Not able to take at least something
 	if len(runners) < 1 {
@@ -201,7 +216,7 @@ func TakeBestRunner(runners []*Runner) *Runner {
 	}
 
 	// Take best scored runner
-	best := 0
+	best := 0.0
 	bestId := 0
 	for id, runner := range runners {
 		if runner.Score > best {
