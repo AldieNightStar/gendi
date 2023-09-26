@@ -7,27 +7,34 @@ import (
 	"time"
 )
 
+var DO_NOTHING = RunnerFunc(func(r *Runner) error { return nil })
+
 type RunnerFunc func(*Runner) error
 
 type Runner struct {
 	Ptr      int
 	Code     string
-	Commands map[byte]RunnerFunc
-	Data     []byte
+	Commands map[rune]RunnerFunc
+	Data     []int
 	Random   *rand.Rand
 	Score    int
 	Charset  string
 }
 
-func NewRunner(code string, datalen int) *Runner {
+func NewRunner(code string, charset string, datalen int) *Runner {
 	return &Runner{
 		Ptr:      0,
 		Code:     code,
-		Commands: make(map[byte]RunnerFunc),
-		Data:     make([]byte, datalen),
+		Commands: make(map[rune]RunnerFunc),
+		Data:     make([]int, datalen),
 		Random:   random(),
+		Charset:  charset,
 		Score:    0,
 	}
+}
+
+func (r *Runner) SetCommand(chr rune, c RunnerFunc) {
+	r.Commands[chr] = c
 }
 
 func (r *Runner) IsBetterThan(r2 *Runner) bool {
@@ -45,13 +52,13 @@ func (r *Runner) Clone() *Runner {
 	datalen := len(r.Data)
 
 	// Create new Runner
-	r2 := NewRunner(r.Code, datalen)
+	r2 := NewRunner(r.Code, r.Charset, datalen)
 
 	// It will reuse the commands
 	r2.Commands = r.Commands
 
 	// Clone the data
-	r2.Data = make([]byte, datalen)
+	r2.Data = make([]int, datalen)
 	for id, d := range r.Data {
 		r2.Data[id] = d
 	}
@@ -127,8 +134,11 @@ func (r *Runner) StepAll() error {
 }
 
 func (r *Runner) Step() error {
+	// Turn code into runes to access the runes
+	coderunes := []rune(r.Code)
+
 	// Get overall length of the code
-	LEN := len(r.Code)
+	LEN := len(coderunes)
 
 	// Reset PTR back to zero if it too far
 	if r.Ptr >= LEN || r.Ptr < 0 {
@@ -136,7 +146,7 @@ func (r *Runner) Step() error {
 	}
 
 	// Get character from the code
-	chr := r.Code[r.Ptr]
+	chr := coderunes[r.Ptr]
 
 	// Find the command according to a character
 	command, commandOk := r.Commands[chr]
