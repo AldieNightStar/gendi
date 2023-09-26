@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	guessNumber := 12.0
+	guessNumber := -9999999.0
 
 	plus := gendi.RunnerFunc(func(r *gendi.Runner) error {
 		r.Data[0] += 1
@@ -22,9 +22,31 @@ func main() {
 
 	multiply := gendi.RunnerFunc(func(r *gendi.Runner) error {
 		r.Data[0] *= 2
-		if math.IsInf(r.Data[0], 1) || math.IsInf(r.Data[0], -1) {
-			r.Data[0] = 0
-		}
+		return nil
+	})
+
+	divide := gendi.RunnerFunc(func(r *gendi.Runner) error {
+		r.Data[0] /= 2
+		return nil
+	})
+
+	power := gendi.RunnerFunc(func(r *gendi.Runner) error {
+		r.Data[0] *= r.Data[0]
+		return nil
+	})
+
+	add5000 := gendi.RunnerFunc(func(r *gendi.Runner) error {
+		r.Data[0] += 5000
+		return nil
+	})
+
+	add10000 := gendi.RunnerFunc(func(r *gendi.Runner) error {
+		r.Data[0] += 10000
+		return nil
+	})
+
+	minusOne := gendi.RunnerFunc(func(r *gendi.Runner) error {
+		r.Data[0] *= -1
 		return nil
 	})
 
@@ -32,26 +54,33 @@ func main() {
 		g := r.Data[0]
 
 		diff := math.Abs(guessNumber - g)
-		if diff > 1000 {
-			diff = 1000
+		if diff > 10000 {
+			diff = 10000
 		} else if diff < 0 {
 			diff = 0
 		}
 
-		result := 1000 - diff
+		result := 10000 - diff
+
+		// fmt.Println(string(r.Code), r.Data, result)
 
 		return result
 	})
 
-	r := gendi.NewRunner([]rune("++++++++++++"), 1, judge)
+	r := gendi.NewRunner([]rune("                                "), 1, judge)
 	r.SetCommand('+', plus)
 	r.SetCommand('-', minus)
 	r.SetCommand('*', multiply)
+	r.SetCommand('/', divide)
+	r.SetCommand('^', power)
+	r.SetCommand(':', add5000)
+	r.SetCommand(';', add10000)
+	r.SetCommand('[', minusOne)
 	r.SetCommand(' ', gendi.DO_NOTHING)
 
 	r.Done()
 
-	trained := r.Train(250, 1, 996)
+	trained := r.Train(100, 2, 9000)
 
 	fmt.Println("CODE:", string(trained.Code), "NUMBER:", trained.Data[0], "SCORE:", trained.Score)
 

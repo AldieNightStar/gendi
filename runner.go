@@ -176,6 +176,9 @@ func (r *Runner) Step() error {
 func (r *Runner) Train(countPerGen, mutationLevel int, minimumScore float64) *Runner {
 	runners := r.CloneMutatedMany(mutationLevel, countPerGen)
 
+	lastBest := r.Clone()
+	lastBest.Score = 0
+
 	// Work with generations
 	for {
 
@@ -192,10 +195,22 @@ func (r *Runner) Train(countPerGen, mutationLevel int, minimumScore float64) *Ru
 		// Then take the best one by score
 		best := TakeBestRunner(runners)
 
+		// if generation score is less than previous, then this generation is fail
+		// Failed generation WILL NOT SURVIVE
+		//
+		// Rather: last best runner will be mutated again with doubled mutation
+		if best.Score < lastBest.Score {
+			runners = best.CloneMutatedMany(mutationLevel*2, countPerGen)
+			continue
+		}
+
 		// If we found the best Runner
 		if best.Score >= minimumScore {
 			return best
 		}
+
+		// Saving best score for the next generations
+		lastBest = best
 
 		// Now create new generation from best one
 		runners = best.CloneMutatedMany(mutationLevel, countPerGen)
