@@ -77,6 +77,9 @@ func (r *Runner) Clone() *Runner {
 	// Clone the score
 	r2.Score = r.Score
 
+	// As charset is not touched then it's just given by ref
+	r2.Charset = r.Charset
+
 	// Return the clone
 	return r2
 }
