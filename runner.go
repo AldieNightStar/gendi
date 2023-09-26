@@ -138,11 +138,8 @@ func (r *Runner) StepAll() error {
 }
 
 func (r *Runner) Step() error {
-	// Turn code into runes to access the runes
-	coderunes := []rune(r.Code)
-
 	// Get overall length of the code
-	LEN := len(coderunes)
+	LEN := len(r.Code)
 
 	// Reset PTR back to zero if it too far
 	if r.Ptr >= LEN || r.Ptr < 0 {
@@ -150,7 +147,7 @@ func (r *Runner) Step() error {
 	}
 
 	// Get character from the code
-	chr := coderunes[r.Ptr]
+	chr := r.Code[r.Ptr]
 
 	// Find the command according to a character
 	command, commandOk := r.Commands[chr]
