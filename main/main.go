@@ -3,19 +3,16 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/AldieNightStar/gendi"
 )
-
-var _random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 type SimpleStringUnit struct {
 	Commands   []string
 	CommandSet []string
 }
 
-func (self *SimpleStringUnit) Mutate() gendi.Unit {
+func (self *SimpleStringUnit) Mutate(random *rand.Rand) gendi.Unit {
 	clone := &SimpleStringUnit{
 		make([]string, len(self.Commands)),
 		self.CommandSet,
@@ -25,8 +22,8 @@ func (self *SimpleStringUnit) Mutate() gendi.Unit {
 	copy(clone.Commands, self.Commands)
 
 	// Mutation
-	id := _random.Int() % len(clone.Commands)
-	idSet := _random.Int() % len(clone.CommandSet)
+	id := random.Int() % len(clone.Commands)
+	idSet := random.Int() % len(clone.CommandSet)
 	clone.Commands[id] = clone.CommandSet[idSet]
 
 	return clone
@@ -35,17 +32,36 @@ func (self *SimpleStringUnit) Mutate() gendi.Unit {
 func (self *SimpleStringUnit) Score() int {
 	score := 0
 	for id, cmd := range self.Commands {
+		if cmd == "?" {
+			score = 0
+		} else if cmd == "~" {
+			score *= -1
+		}
+		if id <= 1 {
+			if cmd == "M" {
+				score += 100
+			}
+		} else {
+			if cmd == "M" {
+				score -= 10
+			}
+		}
+
 		if id > 5 {
 			if cmd == "+" {
 				score += 1
 			} else if cmd == "-" {
 				score -= 1
+			} else if cmd == "/" {
+				score *= 2
 			}
 		} else {
 			if cmd == "+" {
 				score -= 1
 			} else if cmd == "-" {
 				score += 1
+			} else if cmd == "/" {
+				score -= 4
 			}
 		}
 	}
@@ -54,13 +70,13 @@ func (self *SimpleStringUnit) Score() int {
 
 func main() {
 	s := &SimpleStringUnit{
-		[]string{"+", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"},
-		[]string{"+", "-"},
+		[]string{"+", "?", "?", "?", "?", "?", "?", "-", "-", "-", "-", "-", "-", "-", "-", "?", "?", "?", "?", "?", "?", "?"},
+		[]string{"+", "-", "?", "~", "/", "M"},
 	}
 
-	trained := gendi.Train(s, 10, 14)
+	trained, score := gendi.Train(s, 5, 9100000)
 
 	s = trained.(*SimpleStringUnit)
 
-	fmt.Println(s.Commands)
+	fmt.Println("BEST", s.Commands, score)
 }

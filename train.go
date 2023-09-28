@@ -1,10 +1,19 @@
 package gendi
 
+import (
+	"math/rand"
+	"time"
+)
+
+var _random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 // Unit data for train/work
 type Unit interface {
 	// Should return new clone with single change
-	// Mutation is when single piece of data is changed
-	Mutate() Unit
+	// Mutation is when single piece of data is changed.
+	//
+	// Accepts Random object
+	Mutate(*rand.Rand) Unit
 
 	// Returns score points according to data in the Unit
 	// The more data we have, the more chance to survive
@@ -15,7 +24,7 @@ type Unit interface {
 // Your Unit data should have that code inside.
 // After a training you could unwrap that interface into your type
 // and take the data it results
-func Train(lastBest Unit, countPerGen, minimumScore int) Unit {
+func Train(lastBest Unit, countPerGen, minimumScore int) (Unit, int) {
 	units := mutateMany(lastBest, countPerGen)
 	lastBestScore := lastBest.Score()
 
@@ -38,13 +47,14 @@ func Train(lastBest Unit, countPerGen, minimumScore int) Unit {
 		// In this case we will reuse OLD one Best value
 		if best == nil || best.Score < lastBestScore {
 			// Use older Best Unit
-			units = mutateMany(lastBest, countPerGen)
+			// This time we use doubleMutate (Mutate twice)
+			units = doubleMutate(lastBest, countPerGen)
 			continue
 		}
 
 		// If we found the best Runner
 		if best.Score >= minimumScore {
-			return best.Unit
+			return best.Unit, best.Score
 		}
 
 		// Saving best score for the next generations
@@ -59,7 +69,15 @@ func Train(lastBest Unit, countPerGen, minimumScore int) Unit {
 func mutateMany(original Unit, count int) []Unit {
 	var units []Unit
 	for i := 0; i < count; i++ {
-		units = append(units, original.Mutate())
+		units = append(units, original.Mutate(_random))
+	}
+	return units
+}
+
+func doubleMutate(original Unit, count int) []Unit {
+	var units []Unit
+	for i := 0; i < count; i++ {
+		units = append(units, original.Mutate(_random).Mutate(_random))
 	}
 	return units
 }
