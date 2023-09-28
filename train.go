@@ -48,7 +48,7 @@ func Train(lastBest Unit, countPerGen, minimumScore int) (Unit, int) {
 		if best == nil || best.Score < lastBestScore {
 			// Use older Best Unit
 			// This time we use doubleMutate (Mutate twice)
-			units = doubleMutate(lastBest, countPerGen)
+			units = doubleMutateMany(lastBest, countPerGen)
 			continue
 		}
 
@@ -61,7 +61,7 @@ func Train(lastBest Unit, countPerGen, minimumScore int) (Unit, int) {
 		lastBest = best.Unit
 		lastBestScore = best.Score
 
-		// Now create new generation from best one
+		// Now create new generation from the best one
 		units = mutateMany(lastBest, countPerGen)
 	}
 }
@@ -74,7 +74,7 @@ func mutateMany(original Unit, count int) []Unit {
 	return units
 }
 
-func doubleMutate(original Unit, count int) []Unit {
+func doubleMutateMany(original Unit, count int) []Unit {
 	var units []Unit
 	for i := 0; i < count; i++ {
 		units = append(units, original.Mutate(_random).Mutate(_random))
