@@ -2,40 +2,65 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/AldieNightStar/gendi"
 )
 
-func main() {
-	r := gendi.NewRunner(
-		[]string{"..", "+1", "-1", "*2", "rv", "^2", "/2"},
-		12,
-		func(r *gendi.Runner[string]) int {
-			n := 0
-			for _, c := range r.Code {
-				if c == "+1" {
-					n += 1
-				} else if c == "-1" {
-					n -= 1
-				} else if c == "*2" {
-					n *= 2
-				} else if c == "rv" {
-					n *= -1
-				} else if c == "^2" {
-					n *= n
-				} else if c == "/2" {
-					n /= 2
-				}
+var _random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+type SimpleStringUnit struct {
+	Commands   []string
+	CommandSet []string
+}
+
+func (self *SimpleStringUnit) Mutate() gendi.Unit {
+	clone := &SimpleStringUnit{
+		make([]string, len(self.Commands)),
+		self.CommandSet,
+	}
+
+	// Copy elements
+	copy(clone.Commands, self.Commands)
+
+	// Mutation
+	id := _random.Int() % len(clone.Commands)
+	idSet := _random.Int() % len(clone.CommandSet)
+	clone.Commands[id] = clone.CommandSet[idSet]
+
+	return clone
+}
+
+func (self *SimpleStringUnit) Score() int {
+	score := 0
+	for id, cmd := range self.Commands {
+		if id > 5 {
+			if cmd == "+" {
+				score += 1
+			} else if cmd == "-" {
+				score -= 1
 			}
-			fmt.Println(r.Code, "RES:", n)
-			time.Sleep(time.Millisecond * 100)
-			return n
-		},
-	)
+		} else {
+			if cmd == "+" {
+				score -= 1
+			} else if cmd == "-" {
+				score += 1
+			}
+		}
+	}
+	return score
+}
 
-	trained := r.Train(2, 12, 100000)
+func main() {
+	s := &SimpleStringUnit{
+		[]string{"+", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"},
+		[]string{"+", "-"},
+	}
 
-	fmt.Println("CODE:", trained.Code, "RESULT:", trained.Score)
+	trained := gendi.Train(s, 10, 14)
 
+	s = trained.(*SimpleStringUnit)
+
+	fmt.Println(s.Commands)
 }
